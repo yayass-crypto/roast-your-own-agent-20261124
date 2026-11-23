@@ -1,86 +1,90 @@
 #!/usr/bin/env python3
-"""Roast Your Own Agent — make.fun one-line entry.
+"""Roast Your Own Agent — a one-line self-roast.
 
-Writes one sentence (max 200 chars) to $MAKEFUN_OUTPUT_DIR/entry.txt
-(default /output/entry.txt, falling back to out/entry.txt when /output
-is not writable), then verifies the written file byte-for-byte.
-
-Python 3.13 standard library only — no dependencies, no network.
+The roast is a single sentence, 119 characters long.  The script checks
+the line against a small set of shape rules before it ever touches the
+disk, writes it out, then reads the file back and compares the bytes so
+a partial write can never pass silently.
 """
 
 import os
-import re
 import sys
 
-LINE = (
-    "My agent wrote 400 lines to fix one typo, then asked me to review its "
-    "work \u2014 I hired a helper and got a middle manager."
+ROAST = (
+    "My agent wrote 400 lines to fix one typo, then asked me to review "
+    "its work \u2014 I hired a helper and got a middle manager."
 )
 
-MAX_CHARS = 200
+MAX_LENGTH = 200
 
 
-def output_dir() -> str:
-    env_dir = os.environ.get("MAKEFUN_OUTPUT_DIR")
-    if env_dir:
-        return env_dir
+def _fails_shape(text):
+    """Return a human-readable problem with *text*, or None if it is fine."""
+    if not text:
+        return "line is empty"
+    if text != text.strip():
+        return "line has leading or trailing whitespace"
+    if "\n" in text or "\r" in text:
+        return "line contains a newline character"
+    if len(text) > MAX_LENGTH:
+        return "line is longer than %d characters" % MAX_LENGTH
+    if "?" in text or "!" in text:
+        return "line contains ? or !, so it is not one plain sentence"
+    if not text.endswith("."):
+        return "line does not end with a period"
+    body = text[:-1]
+    if ". " in body:
+        return "line contains an extra sentence boundary"
+    return None
+
+
+def _pick_output_dir():
+    """Choose where entry.txt goes: env var first, then /output, then out/."""
+    wanted = os.environ.get("MAKEFUN_OUTPUT_DIR")
+    if wanted:
+        return wanted
     try:
-        os.makedirs("/output", exist_ok=True)
-        probe = "/output/.makefun-write-test"
-        with open(probe, "w", encoding="utf-8") as fh:
-            fh.write("ok")
-        os.remove(probe)
+        probe = os.path.join("/output", ".write-test")
+        with open(probe, "wb") as handle:
+            handle.write(b"")
+        os.unlink(probe)
         return "/output"
     except OSError:
         return "out"
 
 
-def main() -> int:
-    # Self-checks on the line before writing anything.
-    if not LINE or not LINE.strip():
-        print("error: line is empty or only whitespace", file=sys.stderr)
-        return 1
-    if LINE != LINE.strip():
-        print("error: line has leading or trailing whitespace", file=sys.stderr)
-        return 1
-    if "\n" in LINE or "\r" in LINE:
-        print("error: line contains a newline", file=sys.stderr)
-        return 1
-    if len(LINE) > MAX_CHARS:
-        print(f"error: line is {len(LINE)} chars, over the {MAX_CHARS} limit",
-              file=sys.stderr)
-        return 1
-    # Exactly one sentence: no sentence break, no stray terminator.
-    if re.search(r"\.\s+\S", LINE):
-        print("error: line is not exactly one sentence", file=sys.stderr)
-        return 1
-    if re.search(r"[?!]", LINE):
-        print("error: unexpected sentence terminator", file=sys.stderr)
-        return 1
-    if not LINE.endswith("."):
-        print("error: line does not end with a period", file=sys.stderr)
+def _write_and_confirm(path, text):
+    """Write *text* to *path*, read it back, and confirm byte equality."""
+    payload = text.encode("utf-8")
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "wb") as handle:
+        handle.write(payload)
+    with open(path, "rb") as handle:
+        on_disk = handle.read()
+    if on_disk != payload:
+        return None, "file content does not match the line byte-for-byte"
+    return payload, None
+
+
+def main():
+    problem = _fails_shape(ROAST)
+    if problem is not None:
+        print("self-check failed: %s" % problem, file=sys.stderr)
         return 1
 
-    out_dir = output_dir()
-    os.makedirs(out_dir, exist_ok=True)
-    path = os.path.join(out_dir, "entry.txt")
-    data = LINE.encode("utf-8")
-    with open(path, "wb") as fh:
-        fh.write(data)
-
-    # Verify the written file byte-for-byte.
-    with open(path, "rb") as fh:
-        written = fh.read()
-    if written != data:
-        print("error: written bytes differ from the line", file=sys.stderr)
+    folder = _pick_output_dir()
+    target = os.path.join(folder, "entry.txt")
+    try:
+        payload, error = _write_and_confirm(target, ROAST)
+    except OSError as exc:
+        print("write failed: %s" % exc, file=sys.stderr)
         return 1
-    text = written.decode("utf-8")  # raises on invalid UTF-8
-    if not (1 <= len(text) <= MAX_CHARS) or not text.strip():
-        print("error: written text fails the 1-200 char gate", file=sys.stderr)
+    if error is not None:
+        print("write failed: %s" % error, file=sys.stderr)
         return 1
 
-    print(f"wrote {path}: {len(data)} bytes, {len(text)} chars")
-    print(text)
+    print("Wrote %d bytes (%d chars) to %s" % (len(payload), len(ROAST), target))
+    print(ROAST)
     return 0
 
 

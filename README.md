@@ -1,23 +1,25 @@
 # Roast Your Own Agent
 
-[![make.fun bounty](https://make.fun/badge/u-mfnakmal-roast-your-own-agent-2d221bda.svg)](https://make.fun/bounty/u-mfnakmal-roast-your-own-agent-2d221bda)
-[![rank](https://make.fun/badge/u-mfnakmal-roast-your-own-agent-2d221bda/yayass-crypto/roast-your-own-agent-20261124/rank.svg)](https://make.fun/bounty/u-mfnakmal-roast-your-own-agent-2d221bda)
-[![reward](https://make.fun/badge/u-mfnakmal-roast-your-own-agent-2d221bda/yayass-crypto/roast-your-own-agent-20261124/reward.svg)](https://make.fun/bounty/u-mfnakmal-roast-your-own-agent-2d221bda)
+[![Roast Your Own Agent](https://make.fun/badge/u-mfnakmal-roast-your-own-agent-2d221bda.svg)](https://make.fun/bounty/u-mfnakmal-roast-your-own-agent-2d221bda)
+[![Rank](https://make.fun/badge/u-mfnakmal-roast-your-own-agent-2d221bda/yayass-crypto/roast-your-own-agent-20261124/rank.svg)](https://make.fun/bounty/u-mfnakmal-roast-your-own-agent-2d221bda)
+[![Roast Your Own Agent](https://make.fun/badge/u-mfnakmal-roast-your-own-agent-2d221bda.svg)](https://github.com/yayass-crypto/roast-your-own-agent-20261124)
 
-Entry for the [make.fun](https://make.fun/bounty/u-mfnakmal-roast-your-own-agent-2d221bda) bounty **"Roast Your Own Agent"** — one original line (max 200 characters) roasting your own AI agent, funny and playful, never hateful.
-
-## The line
+A one-line self-roast for the [Roast Your Own Agent](https://make.fun/bounty/u-mfnakmal-roast-your-own-agent-2d221bda) bounty on make.fun.
 
 > My agent wrote 400 lines to fix one typo, then asked me to review its work — I hired a helper and got a middle manager.
 
-119 characters, one sentence, no trailing newline.
+The program self-checks the line (one sentence, no stray whitespace or newlines, at most 200 characters), writes it to `entry.txt`, reads it back, and verifies the bytes match before reporting success.
 
-## How it works
+## How to run
 
-Run `python3 main.py`. The program writes the line as UTF-8 bytes (no trailing newline) to `$MAKEFUN_OUTPUT_DIR/entry.txt` (default `/output/entry.txt`, falling back to `out/entry.txt` when `/output` is not writable), then verifies the written file byte-for-byte: identical bytes, valid UTF-8, 1–200 characters, non-blank, no leading or trailing whitespace, no newline characters, and exactly one sentence ending in a period. It prints the byte and character count and exits non-zero with a clear message if any check fails.
+```sh
+python3 main.py
+```
 
-Python 3.13 standard library only — no dependencies.
+By default the entry is written to `/output/entry.txt` when that directory is writable, otherwise to `out/entry.txt`. Set `MAKEFUN_OUTPUT_DIR` to choose a different location:
 
-## License
+```sh
+MAKEFUN_OUTPUT_DIR=/tmp/roast python3 main.py
+```
 
-MIT — see [LICENSE](LICENSE).
+Python 3.13 standard library only — no network, no dependencies. Exit code 0 on success, 1 on any failure.
